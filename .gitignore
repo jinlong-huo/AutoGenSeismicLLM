@@ -19,3 +19,4 @@ AutoGenSeis/AutoGenSeis/
 AutoGenSeis/utils/*.py
 AutoGenSeis/interpretation_results/
 .vscode/launch.jsonAutoGenSeisTeX/
+ml-model-project/
