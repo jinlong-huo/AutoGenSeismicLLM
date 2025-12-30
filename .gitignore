@@ -23,3 +23,8 @@ ml-model-project/
 AutoGenSeisTeX/
 ml-model-project/
 AutoGenSeisTeX/
+.env
+# Environment variables - DO NOT COMMIT
+.env
+.env.local
+*.env
