@@ -7,40 +7,29 @@ __pycache__/
 **/__pycache__/
 *.pyc
 *.pyo
+*.pyd
 
 # Output folders
 workspace/
 
-# Backup files
+# Backup/temp files
 Seis_Ag_Wf_Enhanced_original.py
 
-# In root .gitignore
-**/*.aux
-**/*.log
-**/*.out
-**/*.pdf
-**/*.gz
-**/*.cls
-**/*.bbl
-**/*.sty
-**/*.html
-**/*.bst
-**/*.lib
-**/*.jpg
-**/*.png
-**/*.json
-AutoGenSeis/AutoGenSeis/
-.history/
+# Cache directories
 .cache/
-AutoGenSeis/utils/*.py
-AutoGenSeis/interpretation_results/
-.vscode/launch.jsonAutoGenSeisTeX/
-ml-model-project/
-AutoGenSeisTeX/
-ml-model-project/
-AutoGenSeisTeX/
-.env
+**/.cache/
+41/
+
 # Environment variables - DO NOT COMMIT
 .env
 .env.local
 *.env
+
+# VS Code history
+.history/
+
+# Empty AutoGenSeis folder (legacy)
+AutoGenSeis/
+
+# Interpretation results (generated output)
+interpretation_results/
