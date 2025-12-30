@@ -18,4 +18,4 @@ AutoGenSeis/AutoGenSeis/
 .cache/
 AutoGenSeis/utils/*.py
 AutoGenSeis/interpretation_results/
-.vscode/launch.json
+.vscode/launch.jsonAutoGenSeisTeX/
