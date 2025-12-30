@@ -1,0 +1,21 @@
+# In root .gitignore
+**/*.aux
+**/*.log
+**/*.out
+**/*.pdf
+**/*.gz
+**/*.cls
+**/*.bbl
+**/*.sty
+**/*.html
+**/*.bst
+**/*.lib
+**/*.jpg
+**/*.png
+**/*.json
+AutoGenSeis/AutoGenSeis/
+.history/
+.cache/
+AutoGenSeis/utils/*.py
+AutoGenSeis/interpretation_results/
+.vscode/launch.json

@@ -1,0 +1,21 @@
+model:
+  type: "neural_network"  # Options: neural_network, random_forest, simple_cnn
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+
+data:
+  n_samples: 500
+  n_traces: 100
+  trace_length: 1000
+  n_horizons: 3
+  sampling_rate: 4  # ms
+
+training:
+  test_size: 0.2
+  validation_split: 0.2
+  random_state: 42
+
+prediction:
+  confidence_threshold: 0.5
+  min_horizon_distance: 20

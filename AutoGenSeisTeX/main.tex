@@ -1,0 +1,373 @@
+\documentclass[fleqn,10pt]{wlscirep}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\newcommand{\Jinlong}[1]{\textcolor{blue}{[Jinlong: #1]}}
+\newcommand{\Naihao}[1]{\textcolor{red}{\textbf{Naihao:} #1}}
+\title{Coordinated AI Agent Framework for Autonomous Seismic Structural Interpretation}
+
+\author[1,*]{Naihao Liu}
+\author[1]{Jinlong Huo}
+\author[2,*]{Fangyu Li}
+%\author[1]{Yang Yang}
+%\author[3]{Zhiguo Wang}
+\author[3]{Man Lu}
+\author[2]{Jinghuai Gao}
+%\author[3]{Zezhou Zhang}
+
+\affil[1]{School of Information and Communications Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China (e-mail: naihao\_liu@mail.xjtu.edu.cn, 	jinlong.huo99@gmail.com, and jhgao@mail.xjtu.edu.cn)}
+%\affil[2]{School of Software Engineering, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China (e-mail: 15634356985@stu.xjtu.edu.cn)}
+%\affil[3]{School of Mathematics and Statistics, Xi’an Jiaotong University, Xi’an, Shaanxi 710049, China (emailwzg@gmail.com)}
+\affil[2]{Faculty of Information Technology, Beijing University of Technology, Beijing 100124, China (e-mail: fangyuli2020@gmail.com)}
+\affil[3]{State Key Laboratory of Petroleum Resources and Prospecting, China University of Petroleum (Beijing), Beijing 102249, China (luman1021@cup.edu.cn)}
+
+\affil[*]{corresponding. naihao\_liu@mail.xjtu.edu.cn (N. Liu) and fangyuli2020@gmail.com (F. Li)}
+%\affil[+]{these authors contributed equally to this work}
+
+%\keywords{Keyword1, Keyword2, Keyword3}
+
+\begin{abstract}
+The traditional seismic interpretation workflow, encompassing horizon picking, fault detection, and structural analysis, remains a labor-intensive and time-consuming process that heavily relies on expert interpreters' domain knowledge and manual efforts. Despite recent advances in machine learning for automated seismic interpretation, these methods typically function as isolated tools requiring significant expertise in programming and parameter tuning, creating barriers for widespread adoption among geoscientists. In this work, we present an LLM-based Seismic Interpretation Framework (LLM-SIF) that leverages the power of Large Language Model and Model Context Protocol (MCP) to create an integrated, coordinated intelligent agents for end-to-end seismic interpretation. LLM-SIF comprises six specialized LLM-based agents: Data Explorer, Horizon Tracker, Fault Detector, Attribute Analyzer, Uncertainty Quantifier, and Interpretation Synthesizer, which collaborate to handle fundamental tasks throughout the seismic interpretation workflow. Through the MCP integration, these agents can seamlessly access and process seismic data from various sources, execute interpretation algorithms, and provide interpretable results via natural language interaction. We demonstrate LLM-SIF's capabilities in guiding the complete interpretation process for a complex 3D seismic dataset from the North Sea, including automated horizon picking across multiple stratigraphic levels, fault network detection and characterization, seismic attribute analysis, and uncertainty assessment. The framework successfully identified major horizons and fault segments with accuracy comparable to expert interpretation, while reducing the interpretation time from weeks to hours. Furthermore, LLM-SIF's versatility is validated on diverse geological settings including salt tectonics, carbonate platforms, and thrust-fold belts, demonstrating its adaptability across different interpretation challenges.\end{abstract}
+\begin{document}
+
+\flushbottom
+\maketitle
+% * <john.hammersley@gmail.com> 2015-02-09T12:07:31.197Z:
+%
+%  Click the title above to edit the author information and abstract
+%
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/Workflow.png}
+    \caption{workflow of this study, (a) mllm. (b) three stages alignment, (c) workflow of data preparation for llm (d) workflow for generating segmentation dataset }
+    \label{fig:stream}
+\end{figure}
+
+
+\thispagestyle{empty}
+
+
+\Jinlong{Generated Intro, verified its logic and contents, but not polished worse later}
+
+\section*{Introduction}
+
+Seismic interpretation forms the cornerstone of subsurface characterization in hydrocarbon exploration, carbon sequestration, and geothermal energy development. The process involves analyzing reflection seismic data to identify geological structures, stratigraphic features, and potential reservoir targets. Traditional seismic interpretation workflows require interpreters to manually pick horizons, identify faults, and integrate various seismic attributes, a process that can take weeks to months for a single 3D seismic volume and is subject to interpreter bias and inconsistency.
+The advent of machine learning (ML) and deep learning has introduced numerous automated approaches for specific interpretation tasks. Convolutional neural networks (CNNs) have shown remarkable success in fault detection. Similarly, sequence-based models and graph neural networks have been applied to horizon tracking, demonstrating the ability to propagate picks across complex structural settings. Despite their potential, ML-based solutions in this domain are hampered by several critical limitations. A primary concern is task isolation, whereby current methodologies generally focus on individual interpretation tasks, for instance, exclusively on fault detection or horizon picking. Consequently, interpreters are often required to manually consolidate outputs from various disparate tools. Additionally, significant technical barriers exist, as the implementation of such solutions presupposes a high degree of proficiency in programming, a comprehensive grasp of ML frameworks, and specialized knowledge in parameter optimization—competencies not universally held by practicing geoscientists. The limited adaptability of these systems further curtails their utility; pre-trained models frequently struggle to generalize to diverse geological contexts or seismic data with varying characteristics, thus mandating substantial efforts in retraining or fine-tuning. Finally, the inherent lack of interpretability in many "black-box" ML models poses a substantial challenge, offering scant insight into their operational logic and making it arduous for interpreters to corroborate findings or diagnose instances of failure.
+
+The recent emergence of Large Language Models (LLMs) presents unprecedented opportunities to address these challenges. LLMs like GPT-4o, Claude Sonnet have demonstrated remarkable capabilities in understanding complex instructions, reasoning about domain-specific problems, and orchestrating multi-step workflows through natural language interaction. The introduction of Model Context Protocol (MCP) further enhances LLMs' capabilities by providing standardized interfaces for accessing external data sources, computational resources, and specialized tools. However, the existing approaches do not fully take advantages of those agents, either proposing an integrated workflow or technical pipeline to enhance the commercial software abilities. In this work, we present LLM-SIF, a comprehensive framework that leverages LLM technology and MCP to create an intelligent, end-to-end seismic interpretation platform. 
+
+Our key contributions are multifaceted. We have developed a unified multi-agent system comprising six specialized LLM-based agents that collaboratively manage all facets of seismic interpretation, spanning from initial data exploration to the final synthesis of interpretations. To facilitate seamless interaction between these LLM agents and essential interpretation resources, we have implemented MCP integration, establishing MCP servers for seismic data access, interpretation algorithms, and visualization tools. Furthermore, we introduce a natural language interface through an intuitive web-based platform, empowering interpreters to define their tasks in plain language and thereby obviating the need for coding. Our system also features adaptive interpretation strategies, wherein the agents dynamically modify interpretation parameters and methodologies in response to data characteristics and the specific geological context. Finally, we provide comprehensive validation of LLM-SIF's efficacy, demonstrating its robust, expert-level performance across diverse geological settings and interpretation challenges, alongside a dramatic reduction in the time required for interpretation.
+
+\section*{Results}
+
+Up to three levels of \textbf{subheading} are permitted. Subheadings should not be numbered.
+We presented LLM-SIF, a comprehensive framework that leverages large language models and Model Context Protocol to automate end-to-end seismic interpretation. Through six specialized agents working in concert, the system successfully handles complex interpretation tasks while providing natural language interaction and explainable results.
+Key achievements include:
+
+12x speedup in interpretation workflows
+Expert-level accuracy in horizon tracking and fault detection
+Successful application across diverse geological settings
+Intuitive interface accessible to interpreters without programming skills
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/AutoGenSeis.png}
+    \caption{model using Agent as api to solve task}
+    \label{fig:stream}
+\end{figure}
+
+LLM-SIF demonstrates that LLMs can serve as powerful orchestrators for complex geoscience workflows, bridging the gap between advanced computational methods and domain expertise. As LLM capabilities continue to advance and specialized geoscience models emerge, we envision increasingly sophisticated interpretation systems that augment human expertise while preserving the geological insight that remains essential to subsurface understanding.
+The success of LLM-SIF opens new avenues for AI-assisted geoscience, suggesting similar approaches could transform other interpretation domains such as well log analysis, reservoir modeling, and geophysical inversion. By making advanced interpretation accessible through natural language, we move closer to democratizing subsurface exploration and enabling more efficient, accurate characterization of Earth's resources.
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/benchmark_comparision.png}
+    \caption{benchmark comparisons for vision modules and base llm.}
+    \label{fig:stream}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/comprehensive_description.png}
+    \caption{An example of comprehensive description of seismic facies}
+    \label{fig:stream}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/important_contibutions.png}
+    \caption{Different modalities data contributions in different stage}
+    \label{fig:stream}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Figures/AutoGenAgent.png}
+    \caption{model using Agent as api to solve task}
+    \label{fig:agent_2}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=\linewidth]{Figures/agent.png}
+    \caption{model using Agent as api to solve task}
+    \label{fig:stream}
+\end{figure}
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/dialoge.png}
+    \caption{diageloge in final}
+    \label{fig:stream}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/dialoge.png}
+    \caption{diageloge in stage 1}
+    \label{fig:stream}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/dialoge.png}
+    \caption{diageloge in stage 2}
+    \label{fig:stream}
+\end{figure}
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Figures/dialoge.png}
+    \caption{diageloge in stage 3}
+    \label{fig:stream}
+\end{figure}
+
+% \subsection**{subsection*}
+
+% \begin{itemize}
+% \item First item
+% \item Second item
+% \end{itemize}
+
+% \subsubsection**{Third-level section}
+ 
+% Topical subheadings are allowed.
+
+\section*{Discussion}
+\subsection*{Advantages of LLM-Based Interpretation}
+LLM-SIF demonstrates several key advantages over traditional and ML-based approaches:
+Integrated Workflow: Unlike standalone tools, LLM-SIF provides seamless integration across all interpretation tasks. The agents' ability to share information and coordinate activities ensures consistency and completeness in the final interpretation.
+Adaptability: The system's natural language understanding allows it to adapt to different geological contexts without retraining. Agents can reason about geological principles and adjust their strategies accordingly.
+Explainability: Agents provide detailed explanations for their decisions, building trust and enabling interpreters to learn from the system's reasoning process.
+Accessibility: The natural language interface dramatically lowers barriers to advanced interpretation techniques, democratizing access to state-of-the-art methods.
+\subsection*{Technical Innovations}
+Several technical innovations enable LLM-SIF's performance:
+MCP Integration: The Model Context Protocol provides efficient, type-safe access to seismic data and tools, overcoming limitations of text-based LLM interactions for numerical data processing.
+Hierarchical Prompting: Multi-level prompts encode both general interpretation principles and specific technical details, enabling nuanced decision-making.
+Uncertainty Propagation: Systematic uncertainty quantification throughout the workflow provides interpreters with confidence bounds on all results.
+\subsection*{Limitations and Future Work}
+Despite its capabilities, LLM-SIF has limitations:
+Computational Requirements: Running multiple LLM agents and interpretation algorithms requires significant computational resources, though less than training custom ML models.
+Data Privacy: Cloud-based LLM APIs raise concerns for confidential seismic data. Future work will explore on-premise deployment with open-source LLMs.
+Complex Geology: Extremely complex settings (e.g., heavily faulted salt tectonics) still benefit from expert manual review, though LLM-SIF provides an excellent starting point.
+Real-time Interaction: Current processing times prevent truly interactive interpretation. Optimization and caching strategies could enable real-time response.
+\subsection*{Implications for the Industry}
+LLM-SIF represents a paradigm shift in seismic interpretation:
+
+Workforce Evolution: Interpreters can focus on geological insights rather than manual picking, elevating their role to interpretation strategists.
+Standardization: Natural language task descriptions could become industry standards for interpretation workflows.
+Knowledge Preservation: Encoding expert knowledge in agent prompts helps preserve and transfer interpretation expertise.
+Exploration Efficiency: Rapid interpretation enables quicker decision-making in exploration and development projects.
+
+\section*{Methods}
+\subsection*{System Architecture}
+LLM-SIF employs a modular architecture comprising six specialized agents, MCP servers, and a web-based user interface (Figure 1).
+\subsubsection*{LLM-Based Agents}
+Data Explorer Agent: Responsible for understanding seismic data characteristics, including survey geometry, data quality assessment, and preliminary geological context identification. This agent:
+
+Analyzes seismic data headers and metadata
+Computes basic statistics (amplitude ranges, frequency content, S/N ratio)
+Identifies data issues (dead traces, acquisition footprints, noise patterns)
+Provides recommendations for preprocessing and parameter selection
+
+Horizon Tracker Agent: Specializes in horizon interpretation using a combination of:
+
+Seed point selection based on seismic character analysis
+Multi-attribute horizon tracking (amplitude, phase, frequency)
+Quality control through loop-tie analysis
+Uncertainty estimation using multiple tracking algorithms
+
+Fault Detector Agent: Implements state-of-the-art fault detection methods:
+
+Applies coherence, variance, and ant-tracking attributes
+Runs pre-trained CNN models for fault probability estimation
+Performs fault surface extraction and connectivity analysis
+Generates fault throw maps and Allan diagrams
+
+Attribute Analyzer Agent: Computes and interprets various seismic attributes:
+
+Instantaneous attributes (amplitude, phase, frequency)
+Geometric attributes (dip, azimuth, curvature)
+Texture attributes (GLCM-based measures)
+Spectral decomposition for thin-bed analysis
+
+Uncertainty Quantifier Agent: Assesses interpretation confidence through:
+
+Horizon tracking uncertainty based on seismic quality
+Fault detection confidence scores
+Monte Carlo simulation for structural uncertainty
+Bayesian inference for integrating multiple interpretation scenarios
+
+Interpretation Synthesizer Agent: Integrates results from all agents to:
+
+Create consistent structural frameworks
+Resolve conflicts between different interpretations
+Generate interpretation reports with key findings
+Provide recommendations for additional analysis
+
+\subsubsection*{MCP Server Implementation}
+We implement three MCP servers to support the interpretation workflow:
+Seismic Data Server:
+% python@server.tool
+% async def load_seismic_volume(file_path: str, inline_range: tuple, xline_range: tuple):
+%     """Load 3D seismic data within specified ranges"""
+    
+% @server.tool  
+% async def extract_seismic_section(volume_id: str, section_type: str, section_number: int):
+%     """Extract 2D sections from 3D volume"""
+
+% @server.tool
+% async def compute_data_statistics(volume_id: str, window: dict):
+%     """Compute statistical measures of seismic data"""
+% Interpretation Tools Server:
+% python@server.tool
+% async def track_horizon(seed_points: list, method: str, parameters: dict):
+%     """Perform guided or automatic horizon tracking"""
+
+% @server.tool
+% async def detect_faults(volume_id: str, algorithm: str, threshold: float):
+%     """Run fault detection algorithms"""
+
+% @server.tool
+% async def compute_attributes(volume_id: str, attribute_type: str, window_size: int):
+%     """Calculate seismic attributes"""
+% Visualization Server:
+% python@server.tool
+% async def display_section(data: array, horizons: list, faults: list, colormap: str):
+%     """Generate interactive seismic section displays"""
+
+% @server.tool
+% async def create_3d_view(interpretation_objects: dict, view_parameters: dict):
+%     """Create 3D visualization of interpretation results"""
+\subsection*{Agent Construction and Prompting}
+Each agent is constructed with specialized system prompts that encode domain expertise:
+Example - Horizon Tracker Agent System Prompt:
+You are an expert seismic interpreter specializing in horizon tracking. Your role is to:
+
+1. Analyze seismic data quality and recommend appropriate tracking parameters
+2. Select optimal seed points based on seismic character and structural complexity  
+3. Choose suitable tracking algorithms (amplitude-based, waveform correlation, neural network-based)
+4. Implement quality control through loop-tie checking and mistie analysis
+5. Estimate tracking uncertainty based on seismic quality metrics
+
+When tracking horizons, consider:
+- Lateral changes in seismic character due to lithology variations
+- Structural complexity (faulting, folding, salt tectonics)
+- Data quality issues (noise, multiples, acquisition footprints)
+- Stratigraphic relationships and geological constraints
+
+Always provide confidence estimates and highlight areas requiring manual review.
+\subsection*{Interpretation Workflow Orchestration}
+The interpretation workflow follows a systematic process orchestrated by the agents:
+
+Data Assessment Phase: Data Explorer analyzes the seismic volume Identifies key challenges (noise, structural complexity) Recommends preprocessing steps if needed
+
+
+Regional Interpretation Phase:
+
+Horizon Tracker identifies major stratigraphic boundaries
+Fault Detector maps regional fault systems
+Attribute Analyzer computes coherence for structural trends
+
+
+Detailed Interpretation Phase:
+
+Refined horizon picking with geological constraints
+Detailed fault analysis including throw estimation
+Multi-attribute analysis for reservoir characterization
+
+
+Integration and QC Phase:
+
+Interpretation Synthesizer checks consistency
+Uncertainty Quantifier provides confidence maps
+Final interpretation compilation and reporting
+
+
+
+\subsection*{Multi-Agent Collaboration}
+Agents communicate through a structured message-passing protocol:
+pythonclass InterpretationMessage:
+%     def __init__(self, sender: str, receiver: str, 
+%                  task_type: str, data: dict, priority: int):
+%         self.sender = sender
+%         self.receiver = receiver
+%         self.task_type = task_type
+%         self.data = data
+%         self.priority = priority
+%         self.timestamp = datetime.now()
+% This enables complex workflows such as:
+
+Horizon Tracker requesting fault polygons from Fault Detector to constrain tracking
+Attribute Analyzer computing attributes along horizons provided by Horizon Tracker
+Uncertainty Quantifier aggregating confidence scores from all interpretation agents
+Example text under a subsection*. Bulleted lists may be used where appropriate, e.g.
+
+\bibliography{sample}
+
+\noindent LaTeX formats citations and references automatically using the bibliography records in your .bib file, which you can edit via the project menu. Use the cite command for an inline citation, e.g.  \cite{Hao:gidmaps:2014}.
+
+For data citations of datasets uploaded to e.g. \emph{figshare}, please use the \verb|howpublished| option in the bib entry to specify the platform and the link, as in the \verb|Hao:gidmaps:2014| example in the sample bibliography file.
+
+\section*{Acknowledgements (not compulsory)}
+
+Acknowledgements should be brief, and should not include thanks to anonymous referees and editors, or effusive comments. Grant or contribution numbers may be acknowledged.
+
+\section*{Author contributions statement}
+
+Must include all authors, identified by initials, for example:
+A.A. conceived the experiment(s),  A.A. and B.A. conducted the experiment(s), C.A. and D.A. analysed the results.  All authors reviewed the manuscript. 
+
+\section*{Additional information}
+
+To include, in this order: \textbf{Accession codes} (where applicable); \textbf{Competing interests} (mandatory statement). 
+
+The corresponding author is responsible for submitting a \href{http://www.nature.com/srep/policies/index.html#competing}{competing interests statement} on behalf of all authors of the paper. This statement must be included in the submitted article file.
+
+% \begin{figure}[ht]
+% \centering
+% \includegraphics[width=\linewidth]{Figures/stream.jpg}
+% \caption{Legend (350 words max). Example legend text.}
+% \label{fig:stream}
+% \end{figure}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|l|}
+\hline
+Condition & n & p \\
+\hline
+A & 5 & 0.1 \\
+\hline
+B & 10 & 0.01 \\
+\hline
+\end{tabular}
+\caption{\label{tab:example}Legend (350 words max). Example legend text.}
+\end{table}
+
+Figures and tables can be referenced in LaTeX using the ref command, e.g. Figure \ref{fig:stream} and Table \ref{tab:example}.
+
+\end{document}

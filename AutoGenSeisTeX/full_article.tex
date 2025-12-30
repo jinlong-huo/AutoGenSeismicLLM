@@ -1,0 +1,190 @@
+\documentclass[10pt]{article}
+
+\usepackage{fullpage}
+\usepackage{CJKutf8} 
+\usepackage[utf8]{inputenc}
+\usepackage{setspace}
+\usepackage{parskip}
+\usepackage{titlesec}
+\usepackage[section]{placeins}
+\usepackage{xcolor}
+\usepackage{breakcites}
+\usepackage{lineno}
+\usepackage{hyphenat}
+% \usepackage{xcolor}
+
+
+
+
+\PassOptionsToPackage{hyphens}{url}
+\usepackage[colorlinks = true,
+            linkcolor = blue,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\@combinedblfloats{\box\@outputbox}{\unvbox\@outputbox}{}{%
+  \errmessage{\noexpand\@combinedblfloats could not be patched}%
+}%
+\makeatother
+
+
+\usepackage{natbib}
+
+
+
+
+\renewenvironment{abstract}
+  {{\bfseries\noindent{\abstractname}\par\nobreak}\footnotesize}
+  {\bigskip}
+
+\titlespacing{\section}{0pt}{*3}{*1}
+\titlespacing{\subsection}{0pt}{*2}{*0.5}
+\titlespacing{\subsubsection}{0pt}{*1.5}{0pt}
+
+
+\usepackage{authblk}
+
+
+\usepackage{graphicx}
+\usepackage[space]{grffile}
+\usepackage{latexsym}
+\usepackage{textcomp}
+\usepackage{longtable}
+\usepackage{tabulary}
+\usepackage{booktabs,array,multirow}
+\usepackage{amsfonts,amsmath,amssymb}
+\providecommand\citet{\cite}
+\providecommand\citep{\cite}
+\providecommand\citealt{\cite}
+% You can conditionalize code for latexml or normal latex using this.
+\newif\iflatexml\latexmlfalse
+\providecommand{\tightlist}{\setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}%
+
+\AtBeginDocument{\DeclareGraphicsExtensions{.pdf,.PDF,.eps,.EPS,.png,.PNG,.tif,.TIF,.jpg,.JPG,.jpeg,.JPEG}}
+
+\usepackage[utf8]{inputenc}
+\usepackage[english]{babel}
+
+
+
+
+
+
+
+
+
+
+\begin{document}
+\begin{CJK}{UTF8}{gbsn}
+
+\title{Nature Communications Template}
+
+
+
+\author[1]{Jyoti Chandra}%
+\affil[1]{Affiliation not available}%
+
+
+\vspace{-1em}
+
+
+
+  
+  \date{May 27, 2025}
+
+
+\begingroup
+\let\center\flushleft
+\let\endcenter\endflushleft
+\maketitle
+\endgroup
+
+
+
+
+
+\selectlanguage{english}
+\begin{abstract}
+{This Authorea document template can be used to prepare documents
+according to a desired citation style and authoring guidelines.
+Abstracts are not always required, but most academic papers have one and
+writers should know how to produce a useful abstract. An abstract should
+be a very short, clear and concise summation of the entire paper. An
+abstract should provide enough of a preview that a typical reader will
+know whether or not they wish to read the paper. It should reveal both
+the purpose and conclusions of the paper.}\\%
+\end{abstract}%
+
+
+
+\sloppy
+
+
+This Authorea document template can be used to prepare documents
+according to a desired citation style and authoring guidelines.
+Abstracts are not always required, but most academic papers have one and
+writers should know how to produce a useful abstract. An abstract should
+be a very short, clear and concise summation of the entire paper.
+
+An abstract should provide enough of a preview that a typical reader
+will know whether or not they wish to read the paper. It should reveal
+both the purpose and conclusions of the paper.
+
+\par\null
+
+\section*{Introduction}\label{auto-label-section-226136}
+
+The format of this template follows a typical journal publication with
+an \textbf{introduction}, \textbf{results} and \textbf{conclusion}.
+Examples of an equation, list and citation are also included.~
+
+\par\null
+
+\subsection*{The purpose of the
+introduction}\label{auto-label-subsection-616396}
+
+Most academic introductions follow an `inverted pyramid' structure: they
+start broad and narrow down to a specific thesis or research question.
+The introduction should reveal:
+
+\begin{enumerate}
+\tightlist
+\item
+  some broad knowledge of the overall topic
+\item
+  references to related and prior work in the field of investigation
+\item
+  succinct overview of the major point of the paper
+\end{enumerate}
+
+\par\null
+
+\section*{Results}\label{auto-label-section-330806}
+
+This section is only included in papers that rely on primary research.
+This section catalogues the results of the experiment. The results
+should be presented in a clear and unbiased way. Most results sections
+will contain \href{https://authorea.com}{links}~and citations,
+e.g.,~\textsuperscript{\hyperref[csl:1]{1}}, and equations, e.g.~\(e^{i\pi}+1=0\).
+
+\par\null
+
+\section*{Conclusion}\label{auto-label-section-226071}
+
+The conclusion should reinforce the major claims or interpretation in a
+way that is not mere summary. The writer should try to indicate the
+significance of the major claim/interpretation beyond the scope of the
+paper but within the parameters of the field. The writer might also
+present complications the study illustrates or suggest further research
+the study indicates is necessary.
+
+\selectlanguage{english}
+\FloatBarrier
+\section*{References}\sloppy
+\phantomsection
+\label{csl:1}1.Feynman, R. P. \& Teich, M. C. {Surely You{\textquotesingle}re Joking Mr. Feynman! Adventures of a Curious Character}. \textit{Physics Today} \textbf{39}, 61–61 (1986).
+
+\end{CJK}\end{document}
+
