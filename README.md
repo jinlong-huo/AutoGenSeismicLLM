@@ -1,55 +1,50 @@
 # AutoGen Seismic LLM
 
-An AI-powered seismic data interpretation system using Microsoft AutoGen for multi-agent workflows. This project applies Large Language Models (LLMs) to geoscience data processing—horizon picking, fault detection, and visualization.
+AI-powered seismic data interpretation using Microsoft AutoGen multi-agent workflows. Applies LLMs to horizon picking, fault detection, and visualization.
 
 ## Features
 
-- Multi-agent architecture using AutoGen
-- Automated seismic interpretation pipeline (data loading → cleaning → horizon picking → fault detection → visualization)
-- Flexible execution: fully automated or LLM-coordinated
-- Interactive mode with human-in-the-loop
+- Multi-agent architecture (AutoGen)
+- Three execution modes: Automated, Human-in-the-Loop, LLM-Coordinated
+- Seismic interpretation pipeline: load → clean → horizon picking → fault detection → visualization
 
-## Getting Started
-
-### Installation
+## Installation
 
 ```bash
-git clone https://github.com/yourusername/AutoGenSeismicLLM.git
-cd AutoGenSeismicLLM
 pip install pyautogen numpy matplotlib scipy networkx
 ```
 
-### Configuration
+## Configuration
 
-Copy `.env.example` to `.env` and add your API key:
-
-```bash
-QWEN_API_KEY="your-api-key-here"
-QWEN_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
-```
-
-Supports: Alibaba Cloud DashScope (Qwen), DeepSeek, or any OpenAI-compatible API.
-
-### Run
+Set your API key (for LLM mode):
 
 ```bash
-python AutoGenSeic.py      # Main workflow
-python Seis_Ag_Wf.py       # Interactive mode
+export QWEN_API_KEY="your-api-key"
+export QWEN_BASE_URL="https://dashscope.aliyuncs.com/compatible-mode/v1"
 ```
+
+## Run
+
+```bash
+python AutoGenSeic.py
+```
+
+Menu options:
+1. **Fully Automated** - Runs all tasks without interaction
+2. **Human-in-the-Loop** - Review and approve each task
+3. **LLM-Coordinated** - AI agents coordinate the workflow
+4. **Show workflow info**
+5. **Exit**
 
 ## Architecture
 
-### Agents
-
 | Agent | Role |
 |-------|------|
-| WorkflowManager | Coordinates workflow execution |
-| DataProcessor | Data loading and preprocessing |
-| HorizonInterpreter | Horizon identification |
-| FaultInterpreter | Fault detection and analysis |
-| VisualizationExpert | Visual representations |
-
-### Workflow
+| WorkflowManager | Coordinates execution |
+| DataProcessor | Data loading/preprocessing |
+| HorizonExpert | Horizon identification |
+| FaultExpert | Fault detection |
+| VisualizationExpert | Visualizations |
 
 ```
 load_data → clean_data → pick_horizons → detect_faults → visualize
@@ -57,7 +52,7 @@ load_data → clean_data → pick_horizons → detect_faults → visualize
 
 ## License
 
-MIT License - see [LICENSE](LICENSE)
+MIT - see [LICENSE](LICENSE)
 
 ## References
 

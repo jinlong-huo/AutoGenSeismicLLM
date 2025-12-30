@@ -26,6 +26,145 @@ os.makedirs("workspace/data/raw", exist_ok=True)
 os.makedirs("workspace/data/processed", exist_ok=True)
 os.makedirs("workspace/data/visualizations", exist_ok=True)
 
+# =============================================================================
+# WORKFLOW CONFIGURATION
+# =============================================================================
+class WorkflowConfig:
+    """Configuration class for workflow execution modes"""
+    
+    # Execution modes
+    MODE_AUTO = "auto"              # Fully automated, no human interaction
+    MODE_HUMAN_IN_LOOP = "human"    # Human approval at each step
+    MODE_LLM = "llm"                # LLM-based agent coordination
+    
+    def __init__(self):
+        self.execution_mode = self.MODE_AUTO
+        self.human_approval_required = False
+        self.show_visualizations = True
+        self.save_intermediate_results = True
+        self.verbose = True
+        
+    def set_mode(self, mode: str):
+        """Set the execution mode"""
+        valid_modes = [self.MODE_AUTO, self.MODE_HUMAN_IN_LOOP, self.MODE_LLM]
+        if mode not in valid_modes:
+            raise ValueError(f"Invalid mode: {mode}. Must be one of {valid_modes}")
+        self.execution_mode = mode
+        self.human_approval_required = (mode == self.MODE_HUMAN_IN_LOOP)
+        
+    def is_human_in_loop(self) -> bool:
+        return self.execution_mode == self.MODE_HUMAN_IN_LOOP
+
+# Global config instance
+workflow_config = WorkflowConfig()
+
+# Human-in-the-loop feedback state
+human_feedback_state = {
+    "approvals": {},
+    "modifications": [],
+    "comments": {},
+    "rejected_tasks": set()
+}
+
+# =============================================================================
+# HUMAN-IN-THE-LOOP UTILITIES
+# =============================================================================
+def display_task_result(task_id: str, result: dict, visualize: bool = True):
+    """Display task result to user for review"""
+    print("\n" + "="*60)
+    print(f"📊 TASK COMPLETED: {task_id}")
+    print("="*60)
+    
+    if isinstance(result, str):
+        try:
+            result = json.loads(result)
+        except:
+            print(result)
+            return
+    
+    print(f"\n✅ Status: {result.get('status', 'unknown')}")
+    print(f"⏰ Timestamp: {result.get('timestamp', 'N/A')}")
+    
+    # Display task-specific info
+    if 'dataset_info' in result:
+        info = result['dataset_info']
+        print(f"\n📦 Dataset Info:")
+        print(f"   - Dimensions: {info.get('dimensions', 'N/A')}")
+        print(f"   - Format: {info.get('format', 'N/A')}")
+        
+    if 'horizons_detected' in result:
+        print(f"\n🔍 Horizons Detected: {result['horizons_detected']}")
+        if 'confidence_scores' in result:
+            print(f"   - Confidence Scores: {result['confidence_scores']}")
+            
+    if 'faults_detected' in result:
+        print(f"\n⚡ Faults Detected: {result['faults_detected']}")
+        if 'major_faults' in result:
+            print(f"   - Major Faults: {result['major_faults']}")
+            
+    if 'output_file_path' in result:
+        print(f"\n💾 Output File: {result['output_file_path']}")
+        
+    if 'visualization_path' in result:
+        print(f"📈 Visualization: {result['visualization_path']}")
+        
+    print("="*60)
+
+def get_human_approval(task_id: str, task_description: str) -> tuple:
+    """
+    Get human approval for a task result.
+    Returns: (approved: bool, feedback: str)
+    """
+    print(f"\n🤔 HUMAN REVIEW REQUIRED for task: {task_id}")
+    print(f"   Description: {task_description}")
+    print("\nOptions:")
+    print("  [a] Approve - Accept this result and continue")
+    print("  [m] Modify  - Accept but note modifications needed")
+    print("  [r] Reject  - Reject and re-run this task")
+    print("  [s] Skip    - Skip approval for remaining tasks (auto-approve)")
+    print("  [q] Quit    - Stop the workflow")
+    
+    while True:
+        choice = input("\nYour choice [a/m/r/s/q]: ").strip().lower()
+        
+        if choice == 'a':
+            return True, "Approved"
+        elif choice == 'm':
+            feedback = input("Enter modification notes: ").strip()
+            human_feedback_state["modifications"].append({
+                "task_id": task_id,
+                "feedback": feedback,
+                "timestamp": datetime.now().isoformat()
+            })
+            return True, feedback
+        elif choice == 'r':
+            reason = input("Enter rejection reason: ").strip()
+            human_feedback_state["rejected_tasks"].add(task_id)
+            return False, reason
+        elif choice == 's':
+            workflow_config.human_approval_required = False
+            print("✓ Auto-approval enabled for remaining tasks")
+            return True, "Auto-approved (user skipped)"
+        elif choice == 'q':
+            raise KeyboardInterrupt("User requested workflow termination")
+        else:
+            print("Invalid choice. Please enter a, m, r, s, or q.")
+
+def show_workflow_status(workflow_dag):
+    """Display current workflow status"""
+    print("\n" + "="*60)
+    print("📋 WORKFLOW STATUS")
+    print("="*60)
+    
+    for task_id in workflow_dag.graph.nodes:
+        status = "✅" if task_id in workflow_dag.completed_tasks else "⏳"
+        desc = workflow_dag.graph.nodes[task_id]["description"]
+        deps = list(workflow_dag.graph.predecessors(task_id))
+        dep_str = f" (depends on: {deps})" if deps else ""
+        print(f"  {status} {task_id}: {desc}{dep_str}")
+    
+    print("="*60)
+
 # Sample data generation
 class SeismicDataGenerator:
     @staticmethod
@@ -1004,9 +1143,145 @@ def execute_final_visualization(task_info, workflow_dag):
     workflow_dag.mark_completed(task_info['task_id'], result)
     return json.dumps(result, indent=2)
 
+# =============================================================================
+# HUMAN-IN-THE-LOOP WORKFLOW EXECUTION
+# =============================================================================
+def run_workflow_with_human_in_loop():
+    """Execute the workflow with human approval at each step"""
+    print("\n" + "="*60)
+    print("🔄 HUMAN-IN-THE-LOOP WORKFLOW MODE")
+    print("="*60)
+    print("\nYou will be asked to review and approve each task result.")
+    print("This allows you to validate interpretations before proceeding.\n")
+    
+    # Initialize the workflow DAG
+    workflow = WorkflowDAG()
+    
+    # Define tasks with dependencies
+    workflow.add_task("load_data", "Load seismic data from the specified source")
+    workflow.add_task("clean_data", "Clean and normalize the seismic data", ["load_data"])
+    workflow.add_task("pick_horizons", "Identify geological horizons in the processed data", ["clean_data"])
+    workflow.add_task("detect_faults", "Detect fault lines in relation to identified horizons", ["pick_horizons"])
+    workflow.add_task("visualize_horizons", "Create visual representation of the identified horizons", ["pick_horizons"])
+    workflow.add_task("create_final_visualization", 
+                    "Create comprehensive visualization including horizons and faults", 
+                    ["detect_faults", "visualize_horizons"])
+    
+    # Function mapping for task execution
+    function_map = {
+        "load_data": execute_data_loading,
+        "clean_data": execute_data_cleaning,
+        "pick_horizons": execute_horizon_picking,
+        "detect_faults": execute_fault_detection,
+        "visualize_horizons": execute_horizon_visualization,
+        "create_final_visualization": execute_final_visualization
+    }
+    
+    # Show initial workflow status
+    show_workflow_status(workflow)
+    
+    # Execute workflow with human approval
+    print("\n==== Starting Human-in-the-Loop Workflow ====\n")
+    
+    try:
+        while not workflow.all_tasks_completed():
+            # Get tasks that are ready to be executed
+            ready_tasks = workflow.get_ready_tasks()
+            
+            if not ready_tasks:
+                if workflow.all_tasks_completed():
+                    print("\n✅ All tasks completed!")
+                    break
+                else:
+                    print("\n❌ Error: No tasks ready but workflow not complete")
+                    break
+            
+            print(f"\n📋 Ready tasks: {ready_tasks}")
+            
+            # Process each ready task
+            for task_id in ready_tasks:
+                task_info = workflow.get_task_info(task_id)
+                print(f"\n{'='*60}")
+                print(f"▶️  EXECUTING: {task_id}")
+                print(f"   {task_info['description']}")
+                print(f"{'='*60}")
+                
+                # Execute the task
+                if task_id in function_map:
+                    start_time = time.time()
+                    result_json = function_map[task_id](task_info, workflow)
+                    end_time = time.time()
+                    
+                    print(f"\n⏱️  Task completed in {end_time - start_time:.2f} seconds")
+                    
+                    # Parse and display result
+                    try:
+                        result = json.loads(result_json)
+                    except Exception:
+                        result = {"raw_result": result_json}
+                    
+                    display_task_result(task_id, result)
+                    
+                    # Get human approval if required
+                    if workflow_config.human_approval_required:
+                        approved, feedback = get_human_approval(task_id, task_info['description'])
+                        
+                        # Store feedback
+                        human_feedback_state["approvals"][task_id] = {
+                            "approved": approved,
+                            "feedback": feedback,
+                            "timestamp": datetime.now().isoformat()
+                        }
+                        human_feedback_state["comments"][task_id] = feedback
+                        
+                        if not approved:
+                            print(f"\n⚠️  Task {task_id} was rejected. Reason: {feedback}")
+                            print("Note: Re-running rejected tasks is not yet implemented.")
+                            print("Continuing with workflow...")
+                    else:
+                        print("✓ Auto-approved")
+                else:
+                    print(f"❌ Error: No function mapping for task {task_id}")
+            
+            # Show updated workflow status
+            show_workflow_status(workflow)
+    
+    except KeyboardInterrupt:
+        print("\n\n⚠️  Workflow interrupted by user.")
+        show_workflow_status(workflow)
+    
+    # Print summary
+    print("\n" + "="*60)
+    print("📊 WORKFLOW EXECUTION SUMMARY")
+    print("="*60)
+    print(f"Total tasks: {len(workflow.graph.nodes)}")
+    print(f"Completed tasks: {len(workflow.completed_tasks)}")
+    
+    # Show human feedback summary
+    if human_feedback_state["approvals"]:
+        print("\n👤 Human Feedback Summary:")
+        for task_id, approval_info in human_feedback_state["approvals"].items():
+            status = "✅ Approved" if approval_info["approved"] else "❌ Rejected"
+            print(f"   - {task_id}: {status}")
+            if approval_info["feedback"] != "Approved":
+                print(f"     Comment: {approval_info['feedback']}")
+    
+    if human_feedback_state["modifications"]:
+        print("\n📝 Modification Requests:")
+        for mod in human_feedback_state["modifications"]:
+            print(f"   - {mod['task_id']}: {mod['feedback']}")
+    
+    # List output files
+    print("\n💾 Output Files:")
+    for task_id, result in workflow.results.items():
+        if isinstance(result, dict) and "output_file_path" in result:
+            print(f"   - {task_id}: {result['output_file_path']}")
+    
+    return workflow
+
 # Run workflow without requiring LLM interaction
 def run_workflow_without_llm():
-    """Execute the workflow directly without LLM agents"""
+    """Execute the workflow directly without LLM agents (fully automated)"""
     print("Running workflow in direct execution mode (no LLM)...")
     
     # Initialize the workflow DAG
@@ -1178,8 +1453,8 @@ def setup_autogen_config():
     config_list = [
         {
             "model": "qwen-plus",  # Alibaba Cloud's model
-            "api_key": api_key,
-            "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+            "api_key": os.getenv("QWEN_API_KEY", ""), 
+            "base_url": os.getenv("QWEN_BASE_URL", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
         }
     ]
     
@@ -1189,89 +1464,226 @@ def setup_autogen_config():
     
     return config_list, use_llm
 
+def display_main_menu():
+    """Display the main menu for workflow mode selection"""
+    print("\n" + "="*60)
+    print("🌊 AUTOGEN SEISMIC INTERPRETATION SYSTEM")
+    print("="*60)
+    print("\nSelect execution mode:\n")
+    print("  [1] 🤖 Fully Automated (no interaction)")
+    print("      - Runs all tasks automatically")
+    print("      - Best for batch processing")
+    print()
+    print("  [2] 👤 Human-in-the-Loop")
+    print("      - Review and approve each task result")
+    print("      - Provide feedback and modification notes")
+    print("      - Best for quality control and validation")
+    print()
+    print("  [3] 🧠 LLM-Coordinated (requires API key)")
+    print("      - AI agents coordinate the workflow")
+    print("      - Requires configured DashScope/OpenAI API")
+    print()
+    print("  [4] ℹ️  Show workflow information")
+    print("  [5] 🚪 Exit")
+    print()
+    
+    return input("Enter your choice [1-5]: ").strip()
+
+def show_workflow_info():
+    """Display information about the workflow tasks"""
+    print("\n" + "="*60)
+    print("📋 WORKFLOW INFORMATION")
+    print("="*60)
+    print("\nThis workflow processes seismic data through the following stages:\n")
+    
+    tasks = [
+        ("load_data", "Load/Generate Seismic Data", 
+         "Creates or loads a 3D seismic volume with synthetic horizons and faults"),
+        ("clean_data", "Data Cleaning & Preprocessing",
+         "Applies Gaussian smoothing to reduce noise"),
+        ("pick_horizons", "Horizon Picking",
+         "Identifies geological horizons using amplitude thresholding"),
+        ("detect_faults", "Fault Detection",
+         "Detects fault planes based on horizon discontinuities"),
+        ("visualize_horizons", "Horizon Visualization",
+         "Creates 2D visualization of picked horizons"),
+        ("create_final_visualization", "Final Visualization",
+         "Generates comprehensive visualization with all interpretations")
+    ]
+    
+    for i, (task_id, name, desc) in enumerate(tasks, 1):
+        print(f"  {i}. {name}")
+        print(f"     Task ID: {task_id}")
+        print(f"     Description: {desc}")
+        print()
+    
+    print("Dependencies:")
+    print("  load_data → clean_data → pick_horizons → detect_faults")
+    print("                                        ↘ visualize_horizons")
+    print("                                           ↘ create_final_visualization")
+    print()
+    
+    input("Press Enter to continue...")
+
 def main():
-    """Main function to run the geoscience workflow"""
-    print("Initializing Autogen Geoscience Workflow...")
+    """Main function to run the geoscience workflow with mode selection"""
+    print("\n🚀 Initializing Autogen Geoscience Workflow...")
     
     # Update the horizon extraction function first
-    # update_seismic_data_generator()
     update_seismic_data_generator()
     
-    # Setup autogen config
-    config_list, use_llm = setup_autogen_config()
-    
-    # Initialize the workflow DAG
-    workflow = WorkflowDAG()
-    
-    # Define tasks with dependencies
-    workflow.add_task("load_data", "Load seismic data from the specified source")
-    workflow.add_task("clean_data", "Clean and normalize the seismic data", ["load_data"])
-    workflow.add_task("pick_horizons", "Identify geological horizons in the processed data", ["clean_data"])
-    workflow.add_task("detect_faults", "Detect fault lines in relation to identified horizons", ["pick_horizons"])
-    workflow.add_task("visualize_horizons", "Create visual representation of the identified horizons", ["pick_horizons"])
-    workflow.add_task("create_final_visualization", 
-                     "Create comprehensive visualization including horizons and faults", 
-                     ["detect_faults", "visualize_horizons"])
-    
-    try:
-        if use_llm:
-            print("Running workflow with Autogen LLM-based agents...")
+    while True:
+        choice = display_main_menu()
+        
+        if choice == '1':
+            # Fully Automated Mode
+            print("\n✅ Starting Fully Automated Mode...")
+            workflow_config.set_mode(WorkflowConfig.MODE_AUTO)
             
-            # Create agents and user proxy
-            agents, user_proxy = create_geoscience_agents(workflow, config_list)
+            try:
+                workflow = execute_workflow_with_error_handling()
+                if workflow:
+                    print("\n✅ Workflow completed successfully!")
+            except Exception as e:
+                print(f"\n❌ Error: {e}")
             
-            # Function map for task execution
-            function_map = {
-                "load_data": lambda: execute_data_loading({"task_id": "load_data", "description": workflow.graph.nodes["load_data"]["description"]}, workflow),
-                "clean_data": lambda: execute_data_cleaning({"task_id": "clean_data", "description": workflow.graph.nodes["clean_data"]["description"]}, workflow),
-                "pick_horizons": lambda: execute_horizon_picking({"task_id": "pick_horizons", "description": workflow.graph.nodes["pick_horizons"]["description"]}, workflow),
-                "detect_faults": lambda: execute_fault_detection({"task_id": "detect_faults", "description": workflow.graph.nodes["detect_faults"]["description"]}, workflow),
-                "visualize_horizons": lambda: execute_horizon_visualization({"task_id": "visualize_horizons", "description": workflow.graph.nodes["visualize_horizons"]["description"]}, workflow),
-                "create_final_visualization": lambda: execute_final_visualization({"task_id": "create_final_visualization", "description": workflow.graph.nodes["create_final_visualization"]["description"]}, workflow)
+            print("\nCheck 'workspace/data/visualizations' folder for results.")
+            
+        elif choice == '2':
+            # Human-in-the-Loop Mode
+            print("\n✅ Starting Human-in-the-Loop Mode...")
+            workflow_config.set_mode(WorkflowConfig.MODE_HUMAN_IN_LOOP)
+            
+            # Reset feedback state
+            global human_feedback_state
+            human_feedback_state = {
+                "approvals": {},
+                "modifications": [],
+                "comments": {},
+                "rejected_tasks": set()
             }
             
-            # Register these functions with the user proxy
-            user_proxy.register_function(function_map)
+            try:
+                workflow = run_workflow_with_human_in_loop()
+                if workflow:
+                    print("\n✅ Workflow completed!")
+                    
+                    # Ask if user wants to save feedback
+                    save_feedback = input("\nSave human feedback to file? [y/n]: ").strip().lower()
+                    if save_feedback == 'y':
+                        feedback_file = f"workspace/data/human_feedback_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        with open(feedback_file, 'w') as f:
+                            # Convert set to list for JSON serialization
+                            feedback_to_save = human_feedback_state.copy()
+                            feedback_to_save["rejected_tasks"] = list(feedback_to_save["rejected_tasks"])
+                            json.dump(feedback_to_save, f, indent=2)
+                        print(f"📁 Feedback saved to: {feedback_file}")
+            except KeyboardInterrupt:
+                print("\n\n⚠️ Workflow interrupted by user.")
+            except Exception as e:
+                print(f"\n❌ Error: {e}")
             
-            # Create a group chat with all agents
-            manager = agents["manager"]
-            all_agents = [manager] + [info["agent"] for name, info in agents.items() if name != "manager"]
+        elif choice == '3':
+            # LLM-Coordinated Mode
+            print("\n✅ Starting LLM-Coordinated Mode...")
+            workflow_config.set_mode(WorkflowConfig.MODE_LLM)
             
-            # Create group chat
-            groupchat = autogen.GroupChat(agents=all_agents, messages=[])
-            group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
+            # Setup autogen config
+            config_list, use_llm = setup_autogen_config()
             
-            # Start the conversation with the workflow description
-            task_list = "\n".join([f"- {task_id}: {workflow.graph.nodes[task_id]['description']}" for task_id in workflow.graph.nodes])
-            dependencies = "\n".join([f"- {task_id} depends on: {list(workflow.graph.predecessors(task_id))}" for task_id in workflow.graph.nodes if list(workflow.graph.predecessors(task_id))])
+            if not os.getenv("QWEN_API_KEY"):
+                print("\n⚠️ Warning: QWEN_API_KEY environment variable not set.")
+                print("Set it with: export QWEN_API_KEY='your-api-key'")
+                continue_anyway = input("Continue anyway? [y/n]: ").strip().lower()
+                if continue_anyway != 'y':
+                    continue
             
-            # Initial message describing the workflow
-            initial_message = f"""
-            We need to process seismic data using our workflow. Here are the tasks:
+            # Initialize the workflow DAG
+            workflow = WorkflowDAG()
             
-            {task_list}
+            # Define tasks with dependencies
+            workflow.add_task("load_data", "Load seismic data from the specified source")
+            workflow.add_task("clean_data", "Clean and normalize the seismic data", ["load_data"])
+            workflow.add_task("pick_horizons", "Identify geological horizons in the processed data", ["clean_data"])
+            workflow.add_task("detect_faults", "Detect fault lines in relation to identified horizons", ["pick_horizons"])
+            workflow.add_task("visualize_horizons", "Create visual representation of the identified horizons", ["pick_horizons"])
+            workflow.add_task("create_final_visualization", 
+                             "Create comprehensive visualization including horizons and faults", 
+                             ["detect_faults", "visualize_horizons"])
             
-            Dependencies:
-            {dependencies}
+            try:
+                print("Running workflow with Autogen LLM-based agents...")
+                
+                # Create agents and user proxy
+                agents, user_proxy = create_geoscience_agents(workflow, config_list)
+                
+                # Function map for task execution
+                function_map = {
+                    "load_data": lambda: execute_data_loading({"task_id": "load_data", "description": workflow.graph.nodes["load_data"]["description"]}, workflow),
+                    "clean_data": lambda: execute_data_cleaning({"task_id": "clean_data", "description": workflow.graph.nodes["clean_data"]["description"]}, workflow),
+                    "pick_horizons": lambda: execute_horizon_picking({"task_id": "pick_horizons", "description": workflow.graph.nodes["pick_horizons"]["description"]}, workflow),
+                    "detect_faults": lambda: execute_fault_detection({"task_id": "detect_faults", "description": workflow.graph.nodes["detect_faults"]["description"]}, workflow),
+                    "visualize_horizons": lambda: execute_horizon_visualization({"task_id": "visualize_horizons", "description": workflow.graph.nodes["visualize_horizons"]["description"]}, workflow),
+                    "create_final_visualization": lambda: execute_final_visualization({"task_id": "create_final_visualization", "description": workflow.graph.nodes["create_final_visualization"]["description"]}, workflow)
+                }
+                
+                # Register these functions with the user proxy
+                user_proxy.register_function(function_map)
+                
+                # Create a group chat with all agents
+                manager = agents["manager"]
+                all_agents = [manager] + [info["agent"] for name, info in agents.items() if name != "manager"]
+                
+                # Create group chat
+                groupchat = autogen.GroupChat(agents=all_agents, messages=[])
+                group_chat_manager = autogen.GroupChatManager(groupchat=groupchat, llm_config={"config_list": config_list})
+                
+                # Start the conversation with the workflow description
+                task_list = "\n".join([f"- {task_id}: {workflow.graph.nodes[task_id]['description']}" for task_id in workflow.graph.nodes])
+                dependencies = "\n".join([f"- {task_id} depends on: {list(workflow.graph.predecessors(task_id))}" for task_id in workflow.graph.nodes if list(workflow.graph.predecessors(task_id))])
+                
+                # Initial message describing the workflow
+                initial_message = f"""
+                We need to process seismic data using our workflow. Here are the tasks:
+                
+                {task_list}
+                
+                Dependencies:
+                {dependencies}
+                
+                Tasks should be executed in the correct order based on dependencies.
+                When a task is ready to execute (all dependencies completed), you can run it using the corresponding function.
+                Please coordinate the execution of this workflow, running tasks in parallel when possible.
+                """
+                
+                # Start the conversation
+                user_proxy.initiate_chat(group_chat_manager, message=initial_message)
+                
+                print("\n✅ LLM Workflow completed!")
+                
+            except Exception as e:
+                print(f"\n❌ Error during LLM execution: {e}")
+                print("Falling back to automated mode...")
+                workflow = execute_workflow_with_error_handling()
             
-            Tasks should be executed in the correct order based on dependencies.
-            When a task is ready to execute (all dependencies completed), you can run it using the corresponding function.
-            Please coordinate the execution of this workflow, running tasks in parallel when possible.
-            """
+        elif choice == '4':
+            # Show workflow information
+            show_workflow_info()
             
-            # Start the conversation
-            user_proxy.initiate_chat(group_chat_manager, message=initial_message)
+        elif choice == '5':
+            # Exit
+            print("\n👋 Goodbye!")
+            break
+            
         else:
-            # Run without LLM interaction - use error handling wrapper
-            print("Running workflow in direct execution mode (no LLM)...")
-            workflow = execute_workflow_with_error_handling()
-    except Exception as e:
-        print(f"Error during execution: {e}")
-        print("Falling back to direct execution mode...")
-        workflow = execute_workflow_with_error_handling()
-    
-    print("\nWorkflow execution completed!")
-    print("Check the 'workspace/data/visualizations' folder for results.")
+            print("\n❌ Invalid choice. Please enter 1-5.")
+        
+        # Ask if user wants to continue
+        if choice in ['1', '2', '3']:
+            again = input("\n🔄 Run another workflow? [y/n]: ").strip().lower()
+            if again != 'y':
+                print("\n👋 Goodbye!")
+                break
 
 if __name__ == "__main__":
     main()
