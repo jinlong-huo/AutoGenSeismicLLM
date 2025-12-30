@@ -1,3 +1,19 @@
+# macOS system files
+.DS_Store
+**/.DS_Store
+
+# Python cache
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Output folders
+workspace/
+
+# Backup files
+Seis_Ag_Wf_Enhanced_original.py
+
 # In root .gitignore
 **/*.aux
 **/*.log
